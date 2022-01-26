@@ -32,6 +32,8 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.compass.CompassOverlay
 import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 class MainActivity : ComponentActivity() {
     private lateinit var locationHandler: LocationHandler
@@ -146,6 +148,10 @@ fun ShowMap(mapViewModel: MapViewModel, context: Context) {
         val mCompassOverlay = CompassOverlay(context, InternalCompassOrientationProvider(context), map)
         mCompassOverlay.enableCompass()
 
+        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), map);
+        myLocationOverlay.enableMyLocation();
+
+
         it.controller.setCenter(address?.geoPoint)
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         marker.position = address?.geoPoint
@@ -153,7 +159,8 @@ fun ShowMap(mapViewModel: MapViewModel, context: Context) {
         marker!!.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
         marker.title = address?.address
         marker.showInfoWindow()
-        map.overlays.add(marker)
+        //map.overlays.add(marker)
+        map.overlays.add(myLocationOverlay)
         map.overlays.add(mCompassOverlay)
         map.invalidate()
     }
