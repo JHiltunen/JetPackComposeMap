@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
                         Text(text = "Set my location")
                     }
                     Location(locationHandler = locationHandler)
-                    ShowMap(mapViewModel = mapViewModel)
+                    ShowMap(mapViewModel = mapViewModel, this@MainActivity)
                 }
             }
         }
@@ -83,6 +83,16 @@ class MainActivity : ComponentActivity() {
 
     override fun onPause() {
         super.onPause()
+        locationHandler.stopLocationUpdates()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        locationHandler.startLocationUpdates()
+    }
+
+    override fun onStop() {
+        super.onStop()
         locationHandler.stopLocationUpdates()
     }
 }
@@ -114,7 +124,7 @@ fun ComposeMap(): MapView {
 }
 
 @Composable
-fun ShowMap(mapViewModel: MapViewModel) {
+fun ShowMap(mapViewModel: MapViewModel, context: Context) {
     val map = ComposeMap()
     // hard coded zoom level and map center only at start
     var mapInitialized by remember(map) { mutableStateOf(false) }
@@ -133,8 +143,10 @@ fun ShowMap(mapViewModel: MapViewModel) {
         it.controller.setCenter(address?.geoPoint)
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         marker.position = address?.geoPoint
-        marker.closeInfoWindow()
+        //marker.closeInfoWindow()
+        marker!!.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
         marker.title = address?.address
+        marker.showInfoWindow()
         map.overlays.add(marker)
         map.invalidate()
     }
