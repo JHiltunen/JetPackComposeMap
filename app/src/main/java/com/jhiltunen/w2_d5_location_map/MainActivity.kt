@@ -30,6 +30,8 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.compass.CompassOverlay
+import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 
 class MainActivity : ComponentActivity() {
     private lateinit var locationHandler: LocationHandler
@@ -140,6 +142,10 @@ fun ShowMap(mapViewModel: MapViewModel, context: Context) {
     val marker = Marker(map)
     AndroidView({ map }) {
         address ?: return@AndroidView
+
+        val mCompassOverlay = CompassOverlay(context, InternalCompassOrientationProvider(context), map)
+        mCompassOverlay.enableCompass()
+
         it.controller.setCenter(address?.geoPoint)
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         marker.position = address?.geoPoint
@@ -148,6 +154,7 @@ fun ShowMap(mapViewModel: MapViewModel, context: Context) {
         marker.title = address?.address
         marker.showInfoWindow()
         map.overlays.add(marker)
+        map.overlays.add(mCompassOverlay)
         map.invalidate()
     }
 }
