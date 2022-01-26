@@ -273,7 +273,7 @@ class LocationHandler(private var context: Context, var mapViewModel: MapViewMod
                     Log.d("GEOLOCATION", "new location latitude: ${ location.latitude } and longitude: ${ location.longitude } distance $distance" )
                 }*/
                 _currentLocation.postValue(locationResult.lastLocation)
-                _currentSpeed.postValue(locationResult.lastLocation.speed)
+                _currentSpeed.postValue(locationResult.lastLocation.speed * 3.6f)
             }
         }
     }
