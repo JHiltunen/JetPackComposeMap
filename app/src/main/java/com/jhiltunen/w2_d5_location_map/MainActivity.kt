@@ -13,11 +13,10 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.Button
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
@@ -25,23 +24,33 @@ import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.*
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.jhiltunen.w2_d5_location_map.ui.theme.W2_D5_Location_MapTheme
+import org.osmdroid.api.IMapController
 import org.osmdroid.config.Configuration
+import org.osmdroid.library.BuildConfig
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.overlay.Marker
 
 class MainActivity : ComponentActivity() {
     private lateinit var locationHandler: LocationHandler
     private lateinit var lastKnownLocation: State<Location?>
-
+    private lateinit var mapViewModel: MapViewModel
+    private lateinit var map: MapView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //important! set your user agent to prevent getting banned from the osm servers
         Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
 
-        locationHandler = LocationHandler(applicationContext)
+        mapViewModel = MapViewModel()
+        locationHandler = LocationHandler(context = applicationContext, mapViewModel = mapViewModel)
 
-
-        if ((Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED)) {
+        if ((Build.VERSION.SDK_INT >= 23 && ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED)
+        ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
@@ -67,6 +76,7 @@ class MainActivity : ComponentActivity() {
                         Text(text = "Set my location")
                     }
                     Location(locationHandler = locationHandler)
+                    ShowMap(mapViewModel = mapViewModel)
                 }
             }
         }
@@ -99,7 +109,33 @@ fun ComposeMap(): MapView {
     return mapView
 }
 
-class LocationHandler(private var context: Context) {
+@Composable
+fun ShowMap(mapViewModel: MapViewModel) {
+    val map = ComposeMap()
+    // hard coded zoom level and map center only at start
+    var mapInitialized by remember(map) { mutableStateOf(false) }
+    if (!mapInitialized) {
+        map.setTileSource(TileSourceFactory.MAPNIK)
+        map.controller.setZoom(15.0)
+        mapInitialized = true
+        map.controller.setCenter(GeoPoint(60.166640739, 24.943536799))
+    }
+    // observer (e.g. update from the location change listener)
+    val address by mapViewModel.mapData.observeAsState()
+    val marker = Marker(map)
+    AndroidView({ map }) {
+        address ?: return@AndroidView
+        it.controller.setCenter(address?.geoPoint)
+        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        marker.position = address?.geoPoint
+        marker.closeInfoWindow()
+        marker.title = address?.address
+        map.overlays.add(marker)
+        map.invalidate()
+    }
+}
+
+class LocationHandler(private var context: Context, var mapViewModel: MapViewModel) {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
 
@@ -128,6 +164,7 @@ class LocationHandler(private var context: Context) {
             fusedLocationClient.lastLocation.addOnSuccessListener {
                 _lastKnownLocation.postValue(it)
                 _currentLocation.postValue(it)
+                mapViewModel.updateLocation(it)
                 Log.d(
                     "GEOLOCATION",
                     "last location latitude: ${it?.latitude} and longitude: ${it?.longitude}"
@@ -146,8 +183,8 @@ class LocationHandler(private var context: Context) {
                     )
                 }
 
-                _lastKnownLocation.postValue(locationResult.lastLocation)
-
+                //_lastKnownLocation.postValue(locationResult.lastLocation)
+                currentLocation.value?.let { mapViewModel.updateLocation(it) }
                 Log.d("LOCATIONCALLBACK", "${locationResult.locations.size}")
                 /*for (location in locationResult.locations) {
                     Log.d("DISTANCE", "distance: $distance prev: $prev")
