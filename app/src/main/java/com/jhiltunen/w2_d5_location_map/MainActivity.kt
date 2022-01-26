@@ -24,7 +24,6 @@ import androidx.lifecycle.MutableLiveData
 import com.google.android.gms.location.*
 import com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
 import com.jhiltunen.w2_d5_location_map.ui.theme.W2_D5_Location_MapTheme
-import org.osmdroid.api.IMapController
 import org.osmdroid.config.Configuration
 import org.osmdroid.library.BuildConfig
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -68,7 +67,7 @@ class MainActivity : ComponentActivity() {
                 Column {
                     Text(text = "Current location lat: ${lastKnownLocation.value?.latitude} and long ${lastKnownLocation.value?.longitude}")
                     Button(onClick = {
-                        locationHandler.startTracking()
+                        locationHandler.startLocationUpdates()
                     }) {
                         Text(text = "Start tracking")
                     }
@@ -80,6 +79,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        locationHandler.stopLocationUpdates()
     }
 }
 
@@ -116,8 +120,9 @@ fun ShowMap(mapViewModel: MapViewModel) {
     var mapInitialized by remember(map) { mutableStateOf(false) }
     if (!mapInitialized) {
         map.setTileSource(TileSourceFactory.MAPNIK)
-        map.controller.setZoom(15.0)
+        map.controller.setZoom(18.5)
         mapInitialized = true
+        map.setMultiTouchControls(true)
         map.controller.setCenter(GeoPoint(60.166640739, 24.943536799))
     }
     // observer (e.g. update from the location change listener)
@@ -201,7 +206,7 @@ class LocationHandler(private var context: Context, var mapViewModel: MapViewMod
         }
     }
 
-    fun startTracking() {
+    fun startLocationUpdates() {
         val locationRequest = LocationRequest
             .create()
             .setInterval(1000)
@@ -218,5 +223,9 @@ class LocationHandler(private var context: Context, var mapViewModel: MapViewMod
                 Looper.getMainLooper()
             )
         }
+    }
+
+    fun stopLocationUpdates() {
+        fusedLocationClient.removeLocationUpdates(locationCallback)
     }
 }
