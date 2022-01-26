@@ -149,16 +149,15 @@ fun ShowMap(mapViewModel: MapViewModel, context: Context) {
         mCompassOverlay.enableCompass()
 
         val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), map);
-        myLocationOverlay.enableMyLocation();
-
+        myLocationOverlay.enableMyLocation()
 
         it.controller.setCenter(address?.geoPoint)
-        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-        marker.position = address?.geoPoint
+        //marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        //marker.position = address?.geoPoint
         //marker.closeInfoWindow()
-        marker!!.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
-        marker.title = address?.address
-        marker.showInfoWindow()
+        //marker!!.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
+        //marker.title = address?.address
+        //marker.showInfoWindow()
         //map.overlays.add(marker)
         map.overlays.add(myLocationOverlay)
         map.overlays.add(mCompassOverlay)
