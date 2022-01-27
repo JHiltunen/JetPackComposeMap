@@ -87,17 +87,23 @@ class MainActivity : ComponentActivity() {
                     Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         Button(onClick = {
                             locationHandler.startLocationUpdates()
-                        }, modifier = Modifier.weight(1f).aspectRatio(2f)) {
+                        }, modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(2f)) {
                             Text(text = "Start tracking", textAlign = TextAlign.Center)
                         }
                         Button(onClick = {
                             locationHandler.stopLocationUpdates()
-                        }, modifier = Modifier.weight(1f).aspectRatio(2f)) {
+                        }, modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(2f)) {
                             Text(text = "Stop tracking", textAlign = TextAlign.Center)
                         }
                         Button(onClick = {
                             locationHandler.getMyLocation()
-                        }, modifier = Modifier.weight(1f).aspectRatio(2f)) {
+                        }, modifier = Modifier
+                            .weight(1f)
+                            .aspectRatio(2f)) {
                             Text(text = "Set my location", textAlign = TextAlign.Center)
                         }
                     }
@@ -136,16 +142,27 @@ fun Location(locationHandler: LocationHandler) {
     val data = listOf(
         "Current location\nLat: ${currentLocation.value?.latitude}\nLon: ${currentLocation.value?.latitude}",
         "Last known location\nLat: ${lastKnownLocation.value?.latitude}\nLon: ${lastKnownLocation.value?.longitude}",
-        "Current speed\n${currentSpeed.value}",
-        "Total walked distance\n${totalWalkedDistance.value}"
+        "Current speed\n${currentSpeed.value} km/h",
+        "Total walked distance\n${if (totalWalkedDistance.value!! < 1000) totalWalkedDistance.value else totalWalkedDistance.value?.div(1000f)}"
     )
-
+    Row {
+        Card(
+            modifier = Modifier.padding(4.dp).fillMaxWidth(),
+            backgroundColor = Color.LightGray
+        ) {
+            Text(
+                text = "Top speed: ${topSpeed.value} km/h",
+                fontSize = 12.sp,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(15.dp)
+            )
+        }
+    }
     LazyVerticalGrid(
         cells = GridCells.Fixed(2),
         contentPadding = PaddingValues(8.dp)
     ) {
         items(data.size) { index ->
-            //it
             Card(
                 modifier = Modifier.padding(4.dp),
                 backgroundColor = Color.LightGray
@@ -188,7 +205,9 @@ fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, contex
     val address by mapViewModel.mapData.observeAsState()
     var centerToUser by remember { mutableStateOf(false) }
     val marker = Marker(map)
-    FloatingActionButton(modifier = Modifier.zIndex(100f).fillMaxWidth(), onClick = {
+    FloatingActionButton(modifier = Modifier
+        .zIndex(100f)
+        .fillMaxWidth(), onClick = {
         centerToUser = !centerToUser
     }) {
         if (centerToUser) {
@@ -270,8 +289,8 @@ class LocationHandler(private var context: Context, var mapViewModel: MapViewMod
     private var _currentSpeed: MutableLiveData<Float> = MutableLiveData(0f)
     var currentSpeed: LiveData<Float> = _currentSpeed
 
-    private var _topSpeed: MutableLiveData<Location> = MutableLiveData()
-    var topSpeed: LiveData<Location> = _topSpeed
+    private var _topSpeed: MutableLiveData<Float> = MutableLiveData(0f)
+    var topSpeed: LiveData<Float> = _topSpeed
 
     private var _totalWalkedDistance: MutableLiveData<Float> = MutableLiveData(0f)
     var totalWalkedDistance: LiveData<Float> = _totalWalkedDistance
@@ -319,6 +338,9 @@ class LocationHandler(private var context: Context, var mapViewModel: MapViewMod
                 }*/
                 _currentLocation.postValue(locationResult.lastLocation)
                 _currentSpeed.postValue(locationResult.lastLocation.speed * 3.6f)
+                if (topSpeed.value!! < _currentSpeed.value!!) {
+                    _topSpeed.postValue(_currentSpeed.value)
+                }
             }
         }
     }
