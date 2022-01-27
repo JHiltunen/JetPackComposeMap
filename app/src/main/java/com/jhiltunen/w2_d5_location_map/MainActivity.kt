@@ -11,16 +11,21 @@ import android.util.DisplayMetrics
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material.Button
-import androidx.compose.material.FloatingActionButton
-import androidx.compose.material.Icon
-import androidx.compose.material.Text
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.GridCells
+import androidx.compose.foundation.lazy.LazyVerticalGrid
+import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.zIndex
 import androidx.core.app.ActivityCompat
@@ -43,17 +48,14 @@ import org.osmdroid.views.overlay.compass.InternalCompassOrientationProvider
 import org.osmdroid.views.overlay.gestures.RotationGestureOverlay
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
-import org.osmdroid.views.overlay.gridlines.LatLonGridlineOverlay2
-
-
 
 
 class MainActivity : ComponentActivity() {
     private lateinit var locationHandler: LocationHandler
     private lateinit var lastKnownLocation: State<Location?>
     private lateinit var mapViewModel: MapViewModel
-    private lateinit var map: MapView
 
+    @ExperimentalFoundationApi
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //important! set your user agent to prevent getting banned from the osm servers
@@ -69,7 +71,7 @@ class MainActivity : ComponentActivity() {
         ) {
             ActivityCompat.requestPermissions(
                 this,
-                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 0
             )
         }
@@ -81,23 +83,25 @@ class MainActivity : ComponentActivity() {
         setContent {
             lastKnownLocation = locationHandler.currentLocation.observeAsState()
             W2_D5_Location_MapTheme {
-                Column {
-                    Text(text = "Current location lat: ${lastKnownLocation.value?.latitude} and long ${lastKnownLocation.value?.longitude}")
-                    Button(onClick = {
-                        locationHandler.startLocationUpdates()
-                    }) {
-                        Text(text = "Start tracking")
+                Column(Modifier.padding(5.dp)) {
+                    Row(Modifier.padding(5.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Button(onClick = {
+                            locationHandler.startLocationUpdates()
+                        }, modifier = Modifier.weight(1f).aspectRatio(2f)) {
+                            Text(text = "Start tracking", textAlign = TextAlign.Center)
+                        }
+                        Button(onClick = {
+                            locationHandler.stopLocationUpdates()
+                        }, modifier = Modifier.weight(1f).aspectRatio(2f)) {
+                            Text(text = "Stop tracking", textAlign = TextAlign.Center)
+                        }
+                        Button(onClick = {
+                            locationHandler.getMyLocation()
+                        }, modifier = Modifier.weight(1f).aspectRatio(2f)) {
+                            Text(text = "Set my location", textAlign = TextAlign.Center)
+                        }
                     }
-                    Button(onClick = {
-                        locationHandler.stopLocationUpdates()
-                    }) {
-                        Text(text = "Stop tracking")
-                    }
-                    Button(onClick = { locationHandler.getMyLocation() }) {
-                        Text(text = "Set my location")
-                    }
-                    Location(locationHandler = locationHandler)
-                    ShowMap(mapViewModel = mapViewModel, this@MainActivity)
+                    ShowMap(mapViewModel = mapViewModel, locationHandler = locationHandler,this@MainActivity)
                 }
             }
         }
@@ -119,23 +123,46 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@ExperimentalFoundationApi
 @Composable
 fun Location(locationHandler: LocationHandler) {
-    var currentLocation = locationHandler.currentLocation.observeAsState()
-    var lastKnownLocation = locationHandler.lastKnownLocation.observeAsState()
-    var currentSpeed = locationHandler.currentSpeed.observeAsState()
+    val currentLocation = locationHandler.currentLocation.observeAsState()
+    val lastKnownLocation = locationHandler.lastKnownLocation.observeAsState()
+    val currentSpeed = locationHandler.currentSpeed.observeAsState()
     var topSpeed = locationHandler.topSpeed.observeAsState()
-    var totalWalkedDistance = locationHandler.totalWalkedDistance.observeAsState()
+    val totalWalkedDistance = locationHandler.totalWalkedDistance.observeAsState()
 
 
-    Text("Current location: ${currentLocation.value?.latitude}")
-    Text("LastKnown location: ${lastKnownLocation.value?.latitude}")
-    Text("Current speed: ${currentSpeed.value}")
-    Text("Total walked distance: ${totalWalkedDistance.value}")
+    val data = listOf(
+        "Current location\nLat: ${currentLocation.value?.latitude}\nLon: ${currentLocation.value?.latitude}",
+        "Last known location\nLat: ${lastKnownLocation.value?.latitude}\nLon: ${lastKnownLocation.value?.longitude}",
+        "Current speed\n${currentSpeed.value}",
+        "Total walked distance\n${totalWalkedDistance.value}"
+    )
+
+    LazyVerticalGrid(
+        cells = GridCells.Fixed(2),
+        contentPadding = PaddingValues(8.dp)
+    ) {
+        items(data.size) { index ->
+            //it
+            Card(
+                modifier = Modifier.padding(4.dp),
+                backgroundColor = Color.LightGray
+            ) {
+                Text(
+                    text = data[index],
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(15.dp)
+                )
+            }
+        }
+    }
 }
 
 @Composable
-fun ComposeMap(): MapView {
+fun composeMap(): MapView {
     val context = LocalContext.current
     val mapView = remember {
         MapView(context).apply {
@@ -145,9 +172,10 @@ fun ComposeMap(): MapView {
     return mapView
 }
 
+@ExperimentalFoundationApi
 @Composable
-fun ShowMap(mapViewModel: MapViewModel, context: Context) {
-    val map = ComposeMap()
+fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, context: Context) {
+    val map = composeMap()
     // hard coded zoom level and map center only at start
     var mapInitialized by remember(map) { mutableStateOf(false) }
     if (!mapInitialized) {
@@ -158,34 +186,52 @@ fun ShowMap(mapViewModel: MapViewModel, context: Context) {
     }
     // observer (e.g. update from the location change listener)
     val address by mapViewModel.mapData.observeAsState()
-    var centerToUser by remember{ mutableStateOf(false) }
+    var centerToUser by remember { mutableStateOf(false) }
     val marker = Marker(map)
-    FloatingActionButton(modifier = Modifier.zIndex(100f), onClick = {
+    FloatingActionButton(modifier = Modifier.zIndex(100f).fillMaxWidth(), onClick = {
         centerToUser = !centerToUser
     }) {
-        if (centerToUser) Icon(painter = painterResource(id = R.drawable.ic_baseline_my_location_24), contentDescription = "Center to my location") else Icon(painter = painterResource(id = R.drawable.ic_baseline_location_searching_24), contentDescription = "Center to my location disabled")
+        if (centerToUser) {
+            Row(Modifier.padding(15.dp)) {
+                Text(text = "Disable center to my location")
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_baseline_my_location_24),
+                    contentDescription = "Center to my location"
+                )
+            }
+        } else {
+            Row(Modifier.padding(15.dp)) {
+                Text(text = "Enable center to my location")
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_baseline_location_searching_24),
+                    contentDescription = "Center to my location disabled"
+                )
+            }
+        }
     }
+    Location(locationHandler = locationHandler)
     AndroidView({ map }) {
         address ?: return@AndroidView
 
-        val mCompassOverlay = CompassOverlay(context, InternalCompassOrientationProvider(context), map)
+        val mCompassOverlay =
+            CompassOverlay(context, InternalCompassOrientationProvider(context), map)
         mCompassOverlay.enableCompass()
 
-        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), map);
+        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), map)
         myLocationOverlay.enableMyLocation()
 
-        val rotationGestureOverlay = RotationGestureOverlay(map);
-        map.setMultiTouchControls(true);
+        val rotationGestureOverlay = RotationGestureOverlay(map)
+        map.setMultiTouchControls(true)
         rotationGestureOverlay.isEnabled = true
         rotationGestureOverlay.isOptionsMenuEnabled = true
 
-        val dm : DisplayMetrics = context.resources.displayMetrics
+        val dm: DisplayMetrics = context.resources.displayMetrics
         val scaleBarOverlay = ScaleBarOverlay(map)
         scaleBarOverlay.setCentred(true)
         //play around with these values to get the location on screen in the right place for your application
         scaleBarOverlay.setScaleBarOffset(dm.widthPixels / 2, 20)
 
-        val minimapOverlay = MinimapOverlay(context, map.tileRequestCompleteHandler);
+        val minimapOverlay = MinimapOverlay(context, map.tileRequestCompleteHandler)
         minimapOverlay.width = dm.widthPixels / 5
         minimapOverlay.height = dm.heightPixels / 5
 
@@ -195,12 +241,11 @@ fun ShowMap(mapViewModel: MapViewModel, context: Context) {
         }
 
 
-
         //marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         //marker.position = address?.geoPoint
         //marker.closeInfoWindow()
         //marker!!.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
-       // marker.title = address?.address
+        // marker.title = address?.address
         //marker.showInfoWindow()
         //map.overlays.add(marker)
         map.overlays.add(myLocationOverlay)
