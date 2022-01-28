@@ -255,10 +255,9 @@ fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, contex
 
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
         marker.position = address?.geoPoint
-        Log.d("POSITION:", marker.position.toString())
         marker.closeInfoWindow()
         marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
-        marker.title = homeAddress
+        marker.title = homeAddress + "\nLat: ${address?.geoPoint?.latitude}, Long: ${address?.geoPoint?.longitude}"
         map.overlays.add(marker)
         map.overlays.add(mCompassOverlay)
         map.overlays.add(rotationGestureOverlay)
