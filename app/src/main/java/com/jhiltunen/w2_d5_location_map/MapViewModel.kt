@@ -14,13 +14,11 @@ class MapViewModel : ViewModel() {
 
     init {
         // Helsinki 60.166640739°N, 24.943536799°E
-        _mapData.value = MapData(startPoint, "Default")
+        _mapData.postValue(MapData(startPoint, "Default"))
     }
 
     fun updateLocation(newLocation: Location) {
-        startPoint.longitude = newLocation.longitude
-        startPoint.latitude = newLocation.latitude
-        //mapController.setCenter(startPoint)
+        _mapData.postValue(MapData(GeoPoint(newLocation.latitude, newLocation.longitude), "Huuhaa"))
     }
 }
 

@@ -203,7 +203,7 @@ fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, contex
     }
     // observer (e.g. update from the location change listener)
     val address by mapViewModel.mapData.observeAsState()
-    var centerToUser by remember { mutableStateOf(false) }
+    var centerToUser by remember { mutableStateOf(true) }
     val marker = Marker(map)
     FloatingActionButton(modifier = Modifier
         .zIndex(100f)
@@ -236,9 +236,6 @@ fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, contex
             CompassOverlay(context, InternalCompassOrientationProvider(context), map)
         mCompassOverlay.enableCompass()
 
-        val myLocationOverlay = MyLocationNewOverlay(GpsMyLocationProvider(context), map)
-        myLocationOverlay.enableMyLocation()
-
         val rotationGestureOverlay = RotationGestureOverlay(map)
         map.setMultiTouchControls(true)
         rotationGestureOverlay.isEnabled = true
@@ -250,28 +247,21 @@ fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, contex
         //play around with these values to get the location on screen in the right place for your application
         scaleBarOverlay.setScaleBarOffset(dm.widthPixels / 2, 20)
 
-        val minimapOverlay = MinimapOverlay(context, map.tileRequestCompleteHandler)
-        minimapOverlay.width = dm.widthPixels / 5
-        minimapOverlay.height = dm.heightPixels / 5
-
-
         if (centerToUser) {
             it.controller.setCenter(address?.geoPoint)
         }
 
 
-        //marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-        //marker.position = address?.geoPoint
-        //marker.closeInfoWindow()
-        //marker!!.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
-        // marker.title = address?.address
-        //marker.showInfoWindow()
-        //map.overlays.add(marker)
-        map.overlays.add(myLocationOverlay)
+        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+        marker.position = address?.geoPoint
+        Log.d("POSITION:", marker.position.toString())
+        marker.closeInfoWindow()
+        marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
+        marker.title = address?.address
+        map.overlays.add(marker)
         map.overlays.add(mCompassOverlay)
         map.overlays.add(rotationGestureOverlay)
         map.overlays.add(scaleBarOverlay)
-        //map.overlays.add(minimapOverlay);
         map.invalidate()
     }
 }
@@ -326,7 +316,7 @@ class LocationHandler(private var context: Context, var mapViewModel: MapViewMod
 
                 //_lastKnownLocation.postValue(locationResult.lastLocation)
                 currentLocation.value?.let { mapViewModel.updateLocation(it) }
-                Log.d("LOCATIONCALLBACK", "${locationResult.locations.size}")
+                Log.d("LOCATIONCALLBACK", "new lat: ${locationResult.lastLocation.latitude} and long: ${locationResult.lastLocation.longitude}")
                 /*for (location in locationResult.locations) {
                     Log.d("DISTANCE", "distance: $distance prev: $prev")
                     if (prev != null) {
@@ -346,6 +336,7 @@ class LocationHandler(private var context: Context, var mapViewModel: MapViewMod
     }
 
     fun startLocationUpdates() {
+        Log.d("START", "START LÖOCATION UPDATES")
         val locationRequest = LocationRequest
             .create()
             .setInterval(1000)
