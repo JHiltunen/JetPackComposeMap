@@ -203,6 +203,7 @@ fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, contex
     }
     // observer (e.g. update from the location change listener)
     val address by mapViewModel.mapData.observeAsState()
+    val homeAddress by mapViewModel.address.observeAsState()
     var centerToUser by remember { mutableStateOf(true) }
     val marker = Marker(map)
     FloatingActionButton(modifier = Modifier
@@ -257,7 +258,7 @@ fun ShowMap(mapViewModel: MapViewModel, locationHandler: LocationHandler, contex
         Log.d("POSITION:", marker.position.toString())
         marker.closeInfoWindow()
         marker.icon = ContextCompat.getDrawable(context, R.drawable.ic_baseline_person_pin_circle_24);
-        marker.title = address?.address
+        marker.title = homeAddress
         map.overlays.add(marker)
         map.overlays.add(mCompassOverlay)
         map.overlays.add(rotationGestureOverlay)

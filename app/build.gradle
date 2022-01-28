@@ -67,4 +67,6 @@ dependencies {
 
     implementation 'org.osmdroid:osmdroid-android:6.1.10' //in case of bug, go down to 6.1.6// old android.preference is deprecated, switch to androidx
     implementation 'androidx.preference:preference-ktx:1.1.1'
+
+    implementation 'com.github.MKergall:osmbonuspack:6.7.0'
 }
